@@ -1,0 +1,61 @@
+#import the libraries used
+import time
+import board
+import digitalio
+
+#import and initialize the ServoKit class
+from adafruit_servokit import ServoKit
+kit = ServoKit(channels=16)
+
+# attribute the pins from the ultrasonic sensor
+trig = digitalio.DigitalInOut(board.D23) # GPIO23
+echo = digitalio.DigitalInOut(board.D24) # GPIO24
+trig.direction = digitalio.Direction.OUTPUT
+echo.direction = digitalio.Direction.INPUT
+
+def calculate_distance():
+    #set the trigger to HIGH
+    trig.value = True
+    #sleep 0.00001 s and the set the trigger to LOW
+    time.sleep(0.00001)
+    trig.value = False
+
+    #save the start and stop times
+    start = time.time()
+    stop = time.time()
+
+    #modify the start time to be the last time until
+    #the echo becomes HIGH
+    while echo.value == False:
+        start = time.time()
+
+    #modify the stop time to be the last time until
+    #the echo becomes LOW
+    while  echo.value == True:
+        stop = time.time()
+
+    #get the duration of the echo pin as HIGH
+    duration = stop - start
+
+    #calculate the distance
+    distance = 34300/2 * duration
+
+    #return the distance in cm
+    return distance
+
+# the program runs continuously
+while True:
+    try:
+        print("Distance = %.2f" % calculate_distance()) # print the distance in cm
+        if calculate_distance() < 5: # check if the ogject is too close to sensor
+            kit.servo[0].angle = 180 # move the servo to 180 degrees
+
+        elif calculate_distance() >= 5 and calculate_distance() <= 10 :
+            kit.servo[0].angle = 90 # move the servo to 90 degrees
+            
+        elif calculate_distance() > 10: # if the object is far way from sensor
+            kit.servo[0].angle = 0 # move the servo to 0
+            
+    except RuntimeError:
+        print("Retry")
+    time.sleep(0.1)
